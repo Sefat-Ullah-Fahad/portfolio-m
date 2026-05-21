@@ -9,70 +9,7 @@ import { scrollToSectionId } from '@/lib/navScroll';
 // ==========================================
 // 1. DotField Background (Optimized)
 // ==========================================
-const DotField = memo(({
-  active = true,
-  dotRadius = 2, dotSpacing = 20, cursorRadius = 300, bulgeStrength = 60
-}) => {
-  const canvasRef = useRef(null);
-  const dotsRef = useRef([]);
-  const mouseRef = useRef({ x: -9999, y: -9999 });
-  const sizeRef = useRef({ w: 0, h: 0, offsetX: 0, offsetY: 0 });
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !active) return;
-    const ctx = canvas.getContext('2d', { alpha: true });
-    
-    function doResize() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = rect.width; canvas.height = rect.height;
-      sizeRef.current = { w: rect.width, h: rect.height, offsetX: rect.left, offsetY: rect.top };
-      const step = dotRadius + dotSpacing;
-      const cols = Math.floor(rect.width / step);
-      const rows = Math.floor(rect.height / step);
-      dotsRef.current = [];
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          dotsRef.current.push({ ax: c * step + step/2, ay: r * step + step/2, sx: c * step, sy: r * step });
-        }
-      }
-    }
-
-    window.addEventListener('resize', doResize);
-    window.addEventListener('mousemove', (e) => {
-      mouseRef.current = { x: e.clientX - sizeRef.current.offsetX, y: e.clientY - sizeRef.current.offsetY };
-    });
-    
-    doResize();
-    let running = true;
-    function tick() {
-      if (!running) return;
-      ctx.clearRect(0, 0, sizeRef.current.w, sizeRef.current.h);
-      ctx.fillStyle = 'rgba(129, 75, 255, 0.15)';
-      dotsRef.current.forEach(d => {
-        const dx = mouseRef.current.x - d.ax; const dy = mouseRef.current.y - d.ay;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < cursorRadius) {
-          const push = (1 - dist / cursorRadius) * bulgeStrength;
-          d.sx = d.ax - (dx / dist) * push; d.sy = d.ay - (dy / dist) * push;
-        } else {
-          d.sx += (d.ax - d.sx) * 0.1; d.sy += (d.ay - d.sy) * 0.1;
-        }
-        ctx.beginPath(); ctx.arc(d.sx, d.sy, dotRadius, 0, Math.PI * 2); ctx.fill();
-      });
-      requestAnimationFrame(tick);
-    }
-    const raf = requestAnimationFrame(tick);
-    return () => {
-      running = false;
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', doResize);
-    };
-  }, [active, dotRadius, dotSpacing, cursorRadius, bulgeStrength]);
-
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
-});
-DotField.displayName = 'DotField';
 
 // ==========================================
 // 2. About Section
@@ -84,7 +21,7 @@ export default function About() {
 
   return (
     <section ref={sectionRef} id="about" className="relative w-full bg-[#03000a] text-white py-24 px-6 md:px-12 lg:px-20 overflow-hidden scroll-mt-28">
-      <DotField active={isVisible} />
+      
 
       <div className="container max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
         
@@ -140,9 +77,9 @@ export default function About() {
                 scrollToSectionId('contact');
               }}
             >
-              <span className="block px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-purple-500 hover:text-white transition-all shadow-lg hover:shadow-purple-500/20">
+              {/* <span className="block px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-purple-500 hover:text-white transition-all shadow-lg hover:shadow-purple-500/20">
                 Work With Me
-              </span>
+              </span> */}
             </StarBorder>
           </div>
         </div>

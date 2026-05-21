@@ -4,6 +4,7 @@ import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, SMAAPr
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useSectionVisible } from '@/lib/useSectionVisible';
+import { scrollToSectionId } from '@/lib/navScroll';
 
 // ==========================================
 // 1. HYPERSPEED COMPONENT BACKGROUND
@@ -12,7 +13,7 @@ import { useSectionVisible } from '@/lib/useSectionVisible';
 const DEFAULT_EFFECT_OPTIONS = {
   onSpeedUp: () => {},
   onSlowDown: () => {},
-  distortion: 'turbulentDistortion',
+  distortion: 'turbulentDistortionStill',
   length: 400,
   roadWidth: 10,
   islandWidth: 2,
@@ -586,7 +587,12 @@ export const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
       }
 
       render(delta) {
-        this.composer.render(delta);
+        if (this.disposed || !this.hasValidSize || !this.composer) return;
+        try {
+          this.composer.render(delta);
+        } catch {
+          this.disposed = true;
+        }
       }
 
       dispose() {
@@ -802,6 +808,7 @@ export const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
         let material = new THREE.ShaderMaterial({
           fragmentShader: carLightsFragment,
           vertexShader: carLightsVertex,
+          glslVersion: THREE.GLSL1,
           transparent: true,
           uniforms: Object.assign(
             {
@@ -921,6 +928,7 @@ export const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
         const material = new THREE.ShaderMaterial({
           fragmentShader: sideSticksFragment,
           vertexShader: sideSticksVertex,
+          glslVersion: THREE.GLSL1,
           transparent: true,
           uniforms: Object.assign(
             {
@@ -1015,6 +1023,7 @@ export const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
         const material = new THREE.ShaderMaterial({
           fragmentShader: roadFragment,
           vertexShader: roadVertex,
+          glslVersion: THREE.GLSL1,
           transparent: true,
           uniforms: Object.assign(
             {
@@ -1139,6 +1148,20 @@ export const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
       return needResize;
     }
 
+    const prepareDistortion = (distortion) => {
+      if (!distortion?.getDistortion) return distortion;
+      const needsTimeDecl =
+        distortion.getDistortion.includes('uTime') &&
+        !distortion.getDistortion.includes('uniform float uTime');
+      return {
+        ...distortion,
+        uniforms: { uTime: { value: 0 }, ...(distortion.uniforms || {}) },
+        getDistortion: needsTimeDecl
+          ? `uniform float uTime;\n${distortion.getDistortion}`
+          : distortion.getDistortion,
+      };
+    };
+
     const container = hyperspeed.current;
     const options = Object.assign({}, DEFAULT_EFFECT_OPTIONS, effectOptions);
 
@@ -1159,9 +1182,11 @@ export const Hyperspeed = ({ effectOptions = DEFAULT_EFFECT_OPTIONS }) => {
     } else {
       options.distortion = {
         uniforms: distortion_uniforms,
-        getDistortion: distortion_vertex
+        getDistortion: distortion_vertex,
       };
     }
+
+    options.distortion = prepareDistortion(options.distortion);
 
     const app = new App(container, options);
     appRef.current = app;
@@ -1197,6 +1222,7 @@ const Footer = () => {
     <footer
       ref={footerRef}
       className="relative w-full bg-black text-zinc-400 overflow-hidden border-t border-zinc-900"
+      id="footer"
     >
       
       {/* Dynamic Background — only runs when footer is near viewport */}
@@ -1227,16 +1253,40 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#about" className="hover:text-cyan-400 transition-colors duration-200">About Me</a>
+                <a
+                  href="#about"
+                  onClick={(e) => { e.preventDefault(); scrollToSectionId('about'); }}
+                  className="hover:text-cyan-400 transition-colors duration-200"
+                >
+                  About Me
+                </a>
               </li>
               <li>
-                <a href="#projects" className="hover:text-cyan-400 transition-colors duration-200">Projects</a>
+                <a
+                  href="#projects"
+                  onClick={(e) => { e.preventDefault(); scrollToSectionId('projects'); }}
+                  className="hover:text-cyan-400 transition-colors duration-200"
+                >
+                  Projects
+                </a>
               </li>
               <li>
-                <a href="#experience" className="hover:text-cyan-400 transition-colors duration-200">Experience</a>
+                <a
+                  href="#experience"
+                  onClick={(e) => { e.preventDefault(); scrollToSectionId('experience'); }}
+                  className="hover:text-cyan-400 transition-colors duration-200"
+                >
+                  Experience
+                </a>
               </li>
               <li>
-                <a href="#contact" className="hover:text-cyan-400 transition-colors duration-200">Lets Talk</a>
+                <a
+                  href="#contact"
+                  onClick={(e) => { e.preventDefault(); scrollToSectionId('contact'); }}
+                  className="hover:text-cyan-400 transition-colors duration-200"
+                >
+                  Lets Talk
+                </a>
               </li>
             </ul>
           </div>
@@ -1265,7 +1315,7 @@ const Footer = () => {
           {/* Social Cluster */}
           <div className="flex flex-col gap-3 pointer-events-auto">
             <h3 className="text-white font-semibold tracking-wide uppercase text-xs mb-1">
-              Connect
+              Connect with me
             </h3>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               {/* GitHub */}

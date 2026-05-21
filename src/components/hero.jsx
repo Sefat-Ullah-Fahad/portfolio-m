@@ -6,6 +6,7 @@ import { FaEnvelope, FaEye, FaFacebook, FaGithub, FaInstagram, FaLinkedin, FaTel
 import StarBorder from '@/components/StarBorder';
 import { useSectionVisible } from '@/lib/useSectionVisible';
 import { scrollToSectionId } from '@/lib/navScroll';
+import Link from 'next/link';
 
 // // Custom SVG Icons
 // const GithubIcon = () => (
@@ -425,7 +426,7 @@ export default function Hero() {
           </div>
 
           <p className="text-xs sm:text-sm text-gray-400 font-medium px-2 lg:px-0">
-            Currently at <a href="https://exprovia.com" target="_blank" rel="noopener noreferrer" className="text-red-400 font-semibold hover:underline">Experivia</a> — crafting production-grade apps
+            Currently at <Link href="https://exprovia.com" target="_blank" rel="noopener noreferrer" className="text-red-400 font-semibold hover:underline">Experivia</Link> — crafting production-grade apps
           </p>
 
           <p className="text-[#22c55e] text-sm sm:text-base font-semibold tracking-wide px-2 lg:px-0">
@@ -460,20 +461,20 @@ export default function Hero() {
                 scrollToSectionId('contact');
               }}
             >
-              <span className="bg-[#120722]/80 border border-[#a855f7]/40 hover:bg-[#a855f7]/10 text-white flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm md:text-base font-semibold tracking-wide transition-all transform hover:-translate-y-0.5 w-full sm:w-auto">
+              {/* <span className="bg-[#120722]/80 border border-[#a855f7]/40 hover:bg-[#a855f7]/10 text-white flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm md:text-base font-semibold tracking-wide transition-all transform hover:-translate-y-0.5 w-full sm:w-auto">
                 <FaTelegramPlane className="w-5 h-5" />
                 Get In Touch
-              </span>
+              </span> */}
             </StarBorder>
           </div>
 
           <div className="flex flex-wrap justify-center lg:justify-start items-center gap-4 pt-4 md:pt-6 text-gray-500">
             {socialLinks.map((social, idx) => (
-              <a key={idx} href={social.url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors duration-300 p-2" title={social.name}>
+              <Link key={idx} href={social.url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors duration-300 p-2" title={social.name}>
                 {social.icon}
-              </a>
+              </Link>
             ))}
-            <span className="text-gray-500 hover:text-white cursor-pointer transition-colors duration-300 flex items-center gap-1.5 p-2" title="Discord: fahad_5562">
+            <span className="text-gray-500 hover:text-white  transition-colors duration-300 flex items-center gap-1.5 p-2" title="Discord: fahad_5562">
               <span className="text-xs font-semibold">Discord: fahad_5562</span>
             </span>
           </div>

@@ -11,6 +11,8 @@ export const SITE = {
   locale: 'en_US',
   image:
     'https://res.cloudinary.com/dsga4gyw9/image/upload/v1778241339/WhatsApp_Image_2026-05-03_at_8.31.37_PM_nh3ddd.jpg',
+  logo:
+    'https://res.cloudinary.com/dsga4gyw9/image/upload/v1779369425/WhatsApp_Image_2026-05-21_at_7.07.55_PM-removebg-preview_kxfgyc.png',
   keywords: [
     'Md Sefat Ullah Fahad',
     'Full Stack Developer',

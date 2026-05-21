@@ -9,6 +9,8 @@ import {
   getSectionScrollTop,
   scrollToSectionId,
 } from '@/lib/navScroll';
+import Image from 'next/image';
+import { SITE } from '@/lib/site';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +24,7 @@ export default function Navbar() {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollLockRef = useRef(null);
   const scrollUnlockTimerRef = useRef(null);
+  const isScrollLockedRef = useRef(false);
 
   // Configuration Props for Gooey Effect
   const animationTime = 600;
@@ -37,6 +40,7 @@ export default function Navbar() {
     const element = document.getElementById(id);
     if (!element) return;
 
+    isScrollLockedRef.current = true;
     scrollLockRef.current = index;
     setActiveIndex(index);
     scrollToSectionId(id);
@@ -44,26 +48,22 @@ export default function Navbar() {
 
     clearTimeout(scrollUnlockTimerRef.current);
     scrollUnlockTimerRef.current = setTimeout(() => {
+      isScrollLockedRef.current = false;
       scrollLockRef.current = null;
-    }, 1000);
+      setActiveIndex(getNavActiveIndexFromScroll());
+    }, 1300);
   };
 
-  // Scroll spy — locked while smooth-scrolling after a nav click
+  // Scroll spy — paused while smooth-scrolling after nav click (prevents flicker)
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
 
-      if (scrollLockRef.current !== null && scrollLockRef.current >= 0) {
-        const locked = scrollLockRef.current;
-        const el = document.getElementById(navLinks[locked]?.id);
-        if (el) {
-          const targetTop = getSectionScrollTop(navLinks[locked].id);
-          if (Math.abs(window.scrollY - targetTop) > 24) {
-            setActiveIndex(locked);
-            return;
-          }
+      if (isScrollLockedRef.current) {
+        if (scrollLockRef.current !== null && scrollLockRef.current >= 0) {
+          setActiveIndex(scrollLockRef.current);
         }
-        scrollLockRef.current = null;
+        return;
       }
 
       const nextIndex = getNavActiveIndexFromScroll();
@@ -170,8 +170,9 @@ export default function Navbar() {
 
     if (filterRef.current) {
       filterRef.current.style.opacity = '1';
-      const particles = filterRef.current.querySelectorAll('.particle');
-      particles.forEach((p) => filterRef.current.removeChild(p));
+      filterRef.current.querySelectorAll('.particle').forEach((p) => {
+        p.remove();
+      });
     }
 
     if (textRef.current) {
@@ -197,6 +198,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!navRef.current || !containerRef.current) return;
+    if (isScrollLockedRef.current && scrollLockRef.current >= 0) return;
 
     if (activeIndex < 0) {
       textRef.current?.classList.remove('active');
@@ -428,17 +430,22 @@ export default function Navbar() {
       }`}>
         
         {/* Brand Logo */}
-        <div className="flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-w-0" onClick={() => {
-          navigateToSection('home', 0);
-        }}>
-          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 animate-spin shrink-0" style={{ animationDuration: '8s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="50" cy="50" rx="15" ry="40" stroke="currentColor" strokeWidth="4" transform="rotate(30 50 50)" />
-            <ellipse cx="50" cy="50" rx="15" ry="40" stroke="currentColor" strokeWidth="4" transform="rotate(90 50 50)" />
-            <ellipse cx="50" cy="50" rx="15" ry="40" stroke="currentColor" strokeWidth="4" transform="rotate(150 50 50)" />
-            <circle cx="50" cy="50" r="5" fill="currentColor" />
-          </svg>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-w-0 bg-transparent border-0 p-0"
+          onClick={() => navigateToSection('home', 0)}
+          aria-label="Go to home"
+        >
+          <Image
+            src={SITE.logo}
+            alt="Fahad.dev logo"
+            width={36}
+            height={36}
+            className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0"
+            priority
+          />
           <span className="text-white font-bold text-base sm:text-lg tracking-wider truncate">Fahad.dev</span>
-        </div>
+        </button>
 
         {/* Desktop Gooey Navigation System (Desktop view kicks in perfectly on laptop breakpoints - lg) */}
         <div className="hidden lg:block">
@@ -447,10 +454,10 @@ export default function Navbar() {
               <ul ref={navRef}>
                 {navLinks.map((link, index) => (
                   <li key={link.id} className={activeIndex >= 0 && activeIndex === index ? 'active' : ''}>
-                    <a 
-                      href={`#${link.id}`} 
-                      onClick={e => handleClick(e, index, link.id)} 
-                      onKeyDown={e => handleKeyDown(e, index, link.id)}
+                    <a
+                      href={`#${link.id}`}
+                      onClick={(e) => handleClick(e, index, link.id)}
+                      onKeyDown={(e) => handleKeyDown(e, index, link.id)}
                     >
                       {link.name}
                     </a>
@@ -474,9 +481,15 @@ export default function Navbar() {
             className="rounded-full"
             onClick={(e) => {
               e.preventDefault();
+              isScrollLockedRef.current = true;
               scrollLockRef.current = NAV_ACTIVE_NONE;
               setActiveIndex(NAV_ACTIVE_NONE);
               scrollToSectionId('contact');
+              clearTimeout(scrollUnlockTimerRef.current);
+              scrollUnlockTimerRef.current = setTimeout(() => {
+                isScrollLockedRef.current = false;
+                scrollLockRef.current = null;
+              }, 1300);
             }}
           >
             <span className="block bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 shadow-md shadow-white/10">
@@ -571,10 +584,16 @@ export default function Navbar() {
             className="rounded-xl w-full"
             onClick={(e) => {
               e.preventDefault();
+              isScrollLockedRef.current = true;
               scrollLockRef.current = NAV_ACTIVE_NONE;
               setActiveIndex(NAV_ACTIVE_NONE);
               scrollToSectionId('contact');
               setIsOpen(false);
+              clearTimeout(scrollUnlockTimerRef.current);
+              scrollUnlockTimerRef.current = setTimeout(() => {
+                isScrollLockedRef.current = false;
+                scrollLockRef.current = null;
+              }, 1300);
             }}
           >
             <span className="bg-gradient-to-r from-[#814bff] to-[#e2378f] text-white text-center block w-full py-3 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20">

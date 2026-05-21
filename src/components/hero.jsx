@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image'; 
 import { FaEnvelope, FaEye, FaFacebook, FaGithub, FaInstagram, FaLinkedin, FaTelegramPlane } from 'react-icons/fa';
+import { useSectionVisible } from '@/lib/useSectionVisible';
 
 // // Custom SVG Icons
 // const GithubIcon = () => (
@@ -49,6 +50,7 @@ import { FaEnvelope, FaEye, FaFacebook, FaGithub, FaInstagram, FaLinkedin, FaTel
 
 // Native WebGL-based LightRays
 const NativeLightRays = ({
+  active = true,
   raysColor = "#a855f7", raysSpeed = 1.2, lightSpread = 0.5, rayLength = 1.5,
   pulsating = true, fadeDistance = 1.0, saturation = 0.8, followMouse = true,
   mouseInfluence = 0.15, noiseAmount = 0.08, distortion = 0.06
@@ -65,7 +67,7 @@ const NativeLightRays = ({
   };
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !active) return;
 
     const canvas = document.createElement('canvas');
     canvas.style.width = '100%';
@@ -226,8 +228,10 @@ const NativeLightRays = ({
       distortion: gl.getUniformLocation(program, 'distortion'),
     };
 
+    let running = true;
+
     const render = (time) => {
-      if (!glRef.current || !canvas) return;
+      if (!running || !glRef.current || !canvas) return;
       gl.useProgram(program);
 
       const smooth = 0.93;
@@ -274,16 +278,20 @@ const NativeLightRays = ({
     window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
+      running = false;
       window.removeEventListener('resize', updateSize);
       window.removeEventListener('mousemove', handleMouseMove);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [raysColor, raysSpeed, lightSpread, rayLength, pulsating, fadeDistance, saturation, mouseInfluence, noiseAmount, distortion, followMouse]);
+  }, [active, raysColor, raysSpeed, lightSpread, rayLength, pulsating, fadeDistance, saturation, mouseInfluence, noiseAmount, distortion, followMouse]);
 
   return <div ref={containerRef} className="absolute inset-0 pointer-events-none z-10 opacity-60" />;
 };
 
 export default function Hero() {
+  const sectionRef = useRef(null);
+  const isVisible = useSectionVisible(sectionRef, { initial: true });
+
   const words = ['Node.js Developer', 'UI/UX Implementer', 'React.js Developer', 'Next.js Engineer'];
   const [wordIndex, setWordIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
@@ -334,9 +342,10 @@ export default function Hero() {
 
   return (
     // FIX 1: Removed lg:min-h-[850px] and added explicit top padding (pt-28 md:pt-36) to clear the navbar
-    <section id="home" className="relative min-h-[100dvh] w-full bg-[#060112] overflow-hidden flex items-center justify-center pt-28 md:pt-36 lg:pt-36 pb-16">
+    <section ref={sectionRef} id="home" className="relative min-h-[100dvh] w-full bg-[#060112] overflow-hidden flex items-center justify-center pt-28 md:pt-36 lg:pt-36 pb-16">
       
-      <NativeLightRays 
+      <NativeLightRays
+        active={isVisible}
         raysColor="#a855f7"
         raysSpeed={1.3}
         lightSpread={0.65}

@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useRef, useState, memo } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import Image from 'next/image';
+import { useSectionVisible } from '@/lib/useSectionVisible';
 
 // ==========================================
 // 1. DotField Background (Optimized)
 // ==========================================
 const DotField = memo(({
+  active = true,
   dotRadius = 2, dotSpacing = 20, cursorRadius = 300, bulgeStrength = 60
 }) => {
   const canvasRef = useRef(null);
@@ -16,7 +18,7 @@ const DotField = memo(({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !active) return;
     const ctx = canvas.getContext('2d', { alpha: true });
     
     function doResize() {
@@ -40,7 +42,9 @@ const DotField = memo(({
     });
     
     doResize();
+    let running = true;
     function tick() {
+      if (!running) return;
       ctx.clearRect(0, 0, sizeRef.current.w, sizeRef.current.h);
       ctx.fillStyle = 'rgba(129, 75, 255, 0.15)';
       dotsRef.current.forEach(d => {
@@ -57,8 +61,12 @@ const DotField = memo(({
       requestAnimationFrame(tick);
     }
     const raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', doResize); };
-  }, []);
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', doResize);
+    };
+  }, [active, dotRadius, dotSpacing, cursorRadius, bulgeStrength]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
 });
@@ -68,11 +76,13 @@ DotField.displayName = 'DotField';
 // 2. About Section
 // ==========================================
 export default function About() {
+  const sectionRef = useRef(null);
+  const isVisible = useSectionVisible(sectionRef);
   const profileImg = "https://res.cloudinary.com/dsga4gyw9/image/upload/v1778241339/WhatsApp_Image_2026-05-03_at_8.31.37_PM_nh3ddd.jpg";
 
   return (
-    <section id="about" className="relative w-full bg-[#03000a] text-white py-24 px-6 md:px-12 lg:px-20 overflow-hidden">
-      <DotField />
+    <section ref={sectionRef} id="about" className="relative w-full bg-[#03000a] text-white py-24 px-6 md:px-12 lg:px-20 overflow-hidden">
+      <DotField active={isVisible} />
 
       <div className="container max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
         

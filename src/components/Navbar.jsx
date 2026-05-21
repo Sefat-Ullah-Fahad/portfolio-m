@@ -31,16 +31,39 @@ export default function Navbar() {
     { name: 'Experience', id: 'experience' },
   ];
 
-  // Monitor scroll state
+  // Monitor scroll state + active section on scroll (scroll spy)
   useEffect(() => {
+    const NAV_OFFSET = 100;
+
+    const getActiveIndex = () => {
+      let active = 0;
+      navLinks.forEach((link, index) => {
+        const el = document.getElementById(link.id);
+        if (!el) return;
+        const top = el.getBoundingClientRect().top;
+        if (top <= NAV_OFFSET) active = index;
+      });
+      // Services section exists but is not in nav — keep highlight on Stack until past services
+      const servicesEl = document.getElementById('services');
+      if (servicesEl && servicesEl.getBoundingClientRect().top <= NAV_OFFSET) {
+        const stackIndex = navLinks.findIndex((l) => l.id === 'stack');
+        if (stackIndex >= 0) active = stackIndex;
+      }
+      return active;
+    };
+
     const handleScroll = () => {
       if (window.scrollY > 20) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
       }
+      const nextIndex = getActiveIndex();
+      setActiveIndex((prev) => (prev !== nextIndex ? nextIndex : prev));
     };
-    window.addEventListener('scroll', handleScroll);
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -151,12 +174,12 @@ export default function Navbar() {
 
     const element = document.getElementById(id);
     if (element) {
-      const offset = 100; // Offset to perfectly align sections below floating nav
+      const offset = 100;
       const bodyRect = document.body.getBoundingClientRect().top;
       const elementRect = element.getBoundingClientRect().top;
       window.scrollTo({
-        top: (elementRect - bodyRect) - offset,
-        behavior: 'smooth'
+        top: elementRect - bodyRect - offset,
+        behavior: 'smooth',
       });
       setIsOpen(false);
     }
@@ -477,8 +500,8 @@ export default function Navbar() {
                     const bodyRect = document.body.getBoundingClientRect().top;
                     const elementRect = el.getBoundingClientRect().top;
                     window.scrollTo({
-                      top: (elementRect - bodyRect) - offset,
-                      behavior: 'smooth'
+                      top: elementRect - bodyRect - offset,
+                      behavior: 'smooth',
                     });
                   }
                   setIsOpen(false);

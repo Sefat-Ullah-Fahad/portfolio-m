@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { Renderer, Program, Mesh, Triangle, Color } from 'ogl';
+import { useSectionVisible } from '@/lib/useSectionVisible';
 
 // Real Icons Import (HTML & CSS fixed via FontAwesome for absolute stability)
 import { FaHtml5, FaCss3Alt } from "react-icons/fa";
@@ -137,12 +137,12 @@ void main() {
 // ==========================================
 // 2. INTERNAL THREADS COMPONENT
 // ==========================================
-const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseInteraction = false, ...rest }) => {
+const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseInteraction = false, active = true, ...rest }) => {
   const containerRef = useRef(null);
   const animationFrameId = useRef();
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !active) return;
     const container = containerRef.current;
 
     const renderer = new Renderer({ alpha: true });
@@ -197,7 +197,10 @@ const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseIn
       container.addEventListener('mouseleave', handleMouseLeave);
     }
 
+    let running = true;
+
     function update(t) {
+      if (!running) return;
       if (enableMouseInteraction) {
         const smoothing = 0.05;
         currentMouse[0] += smoothing * (targetMouse[0] - currentMouse[0]);
@@ -216,6 +219,7 @@ const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseIn
     animationFrameId.current = requestAnimationFrame(update);
 
     return () => {
+      running = false;
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
       window.removeEventListener('resize', resize);
 
@@ -226,7 +230,7 @@ const Threads = ({ color = [1, 1, 1], amplitude = 1, distance = 0, enableMouseIn
       if (container.contains(gl.canvas)) container.removeChild(gl.canvas);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [color, amplitude, distance, enableMouseInteraction]);
+  }, [color, amplitude, distance, enableMouseInteraction, active]);
 
   return <div ref={containerRef} className="w-full h-full relative" {...rest} />;
 };
@@ -270,8 +274,11 @@ const skillCardClassName =
 // 4. MAIN EXPORT COMPONENT
 // ==========================================
 export default function TechStack() {
+  const sectionRef = useRef(null);
+  const isVisible = useSectionVisible(sectionRef);
+
   return (
-    <section id="stack" className="relative w-full min-h-screen bg-[#030108] text-white py-24 px-4 md:px-8 overflow-hidden z-10 flex flex-col justify-center">
+    <section ref={sectionRef} id="stack" className="relative w-full min-h-screen bg-[#030108] text-white py-24 px-4 md:px-8 overflow-hidden z-10 flex flex-col justify-center">
       
       {/* Background Threads Layer using exact configuration requested */}
       <div className="absolute inset-0 z-0 pointer-events-auto">
@@ -279,6 +286,7 @@ export default function TechStack() {
           amplitude={3.2}
           distance={0.5}
           enableMouseInteraction={true}
+          active={isVisible}
           color={[1, 1, 1]} 
         />
       </div>
@@ -307,12 +315,10 @@ export default function TechStack() {
           {techSkills.map((skill, index) => {
             const IconComponent = skill.icon;
             return (
-              <motion.div
+              <div
                 key={skill.name}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: index * 0.02 }}
+                className="skill-card-animate"
+                style={{ animationDelay: `${index * 0.02}s` }}
               >
                 <div className={skillCardClassName}>
                   {/* Brand Icon Component (Always colorful & visible) */}
@@ -330,7 +336,7 @@ export default function TechStack() {
                     </span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>

@@ -1,20 +1,67 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import JsonLd from "@/components/JsonLd";
+import { SITE } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata = {
-  title: "Md Sefat Ullah Fahad | Full Stack Developer",
-  description: "Hi, I'm Sefatullah Fahad, a passionate Full-Stack Web Developer. I love building fast, scalable, and user-friendly web applications from scratch.",
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: SITE.title,
+    template: `%s | ${SITE.shortTitle}`,
+  },
+  description: SITE.description,
+  keywords: SITE.keywords,
+  authors: [{ name: SITE.name, url: SITE.url }],
+  creator: SITE.name,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  openGraph: {
+    type: "website",
+    locale: SITE.locale,
+    url: SITE.url,
+    siteName: SITE.shortTitle,
+    title: SITE.title,
+    description: SITE.description,
+    images: [
+      {
+        url: SITE.image,
+        width: 1200,
+        height: 630,
+        alt: SITE.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE.title,
+    description: SITE.description,
+    images: [SITE.image],
+  },
+  alternates: {
+    canonical: SITE.url,
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#030108",
 };
 
 export default function RootLayout({ children }) {
@@ -25,13 +72,10 @@ export default function RootLayout({ children }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {/* নেভিগেশন বারটি এখন সুরক্ষিতভাবে body ট্যাগের ভেতরে রেন্ডার হচ্ছে */}
+        <JsonLd />
         <Navbar />
-        
-        {/* আপনার ওয়েবসাইটের মূল কন্টেন্টসমূহ */}
-        <main className="flex-grow">
-          {children}
-        </main>
+
+        <main className="flex-grow">{children}</main>
       </body>
     </html>
   );

@@ -1,8 +1,17 @@
-import About from "@/components/about";
+import dynamic from "next/dynamic";
 import Hero from "@/components/hero";
-// import Services from "@/components/Services";
-import TechStack from "@/components/TechStack";
-import Image from "next/image";
+
+const About = dynamic(() => import("@/components/about"), {
+  loading: () => null,
+});
+
+const TechStack = dynamic(() => import("@/components/TechStack"), {
+  loading: () => null,
+});
+
+const Services = dynamic(() => import("@/components/Services"), {
+  loading: () => null,
+});
 
 export default function Home() {
   return (
@@ -10,7 +19,7 @@ export default function Home() {
       <Hero></Hero>
       <About></About>
       <TechStack></TechStack>
-      {/* <Services></Services> */}
+      <Services></Services>
     </main>
   );
 }

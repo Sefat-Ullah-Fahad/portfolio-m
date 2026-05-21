@@ -1,21 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import StarBorder from '@/components/StarBorder';
-import { NAV_SECTIONS } from '@/lib/navSections';
+import React, { useState, useEffect, useRef } from "react";
+import StarBorder from "@/components/StarBorder";
+import { NAV_SECTIONS } from "@/lib/navSections";
 import {
   NAV_ACTIVE_NONE,
   getNavActiveIndexFromScroll,
   getSectionScrollTop,
   scrollToSectionId,
-} from '@/lib/navScroll';
-import Image from 'next/image';
-import { SITE } from '@/lib/site';
+} from "@/lib/navScroll";
+import Image from "next/image";
+import { SITE } from "@/lib/site";
+import { debounce } from "lodash";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  
+
   // Gooey Navigation State and Refs
   const containerRef = useRef(null);
   const navRef = useRef(null);
@@ -32,7 +33,7 @@ export default function Navbar() {
   const particleDistances = [80, 10];
   const particleR = 100;
   const timeVariance = 250;
-  const colors = [1, 2, 3, 4, 1, 2]; 
+  const colors = [1, 2, 3, 4, 1, 2];
 
   const navLinks = NAV_SECTIONS;
 
@@ -56,7 +57,7 @@ export default function Navbar() {
 
   // Scroll spy — paused while smooth-scrolling after nav click (prevents flicker)
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = debounce(() => {
       setIsScrolled(window.scrollY > 20);
 
       if (isScrollLockedRef.current) {
@@ -68,15 +69,15 @@ export default function Navbar() {
 
       const nextIndex = getNavActiveIndexFromScroll();
       setActiveIndex((prev) => (prev !== nextIndex ? nextIndex : prev));
-    };
+    }, 100); // Debounce with 100ms delay
 
     handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleScroll);
-      clearTimeout(scrollUnlockTimerRef.current);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+      handleScroll.cancel(); // Cancel debounce on cleanup
     };
   }, [navLinks]);
 
@@ -84,7 +85,8 @@ export default function Navbar() {
   const noise = (n = 1) => n / 2 - Math.random() * n;
 
   const getXY = (distance, pointIndex, totalPoints) => {
-    const angle = ((360 + noise(8)) / totalPoints) * pointIndex * (Math.PI / 180);
+    const angle =
+      ((360 + noise(8)) / totalPoints) * pointIndex * (Math.PI / 180);
     return [distance * Math.cos(angle), distance * Math.sin(angle)];
   };
 
@@ -96,41 +98,41 @@ export default function Navbar() {
       time: t,
       scale: 1 + noise(0.2),
       color: colors[Math.floor(Math.random() * colors.length)],
-      rotate: rotate > 0 ? (rotate + r / 20) * 10 : (rotate - r / 20) * 10
+      rotate: rotate > 0 ? (rotate + r / 20) * 10 : (rotate - r / 20) * 10,
     };
   };
 
-  const makeParticles = element => {
+  const makeParticles = (element) => {
     if (!element) return;
     const d = particleDistances;
     const r = particleR;
     const bubbleTime = animationTime * 2 + timeVariance;
-    element.style.setProperty('--time', `${bubbleTime}ms`);
+    element.style.setProperty("--time", `${bubbleTime}ms`);
 
     for (let i = 0; i < particleCount; i++) {
       const t = animationTime * 2 + noise(timeVariance * 2);
       const p = createParticle(i, t, d, r);
-      element.classList.remove('active');
+      element.classList.remove("active");
 
       setTimeout(() => {
-        const particle = document.createElement('span');
-        const point = document.createElement('span');
-        particle.classList.add('particle');
-        particle.style.setProperty('--start-x', `${p.start[0]}px`);
-        particle.style.setProperty('--start-y', `${p.start[1]}px`);
-        particle.style.setProperty('--end-x', `${p.end[0]}px`);
-        particle.style.setProperty('--end-y', `${p.end[1]}px`);
-        particle.style.setProperty('--time', `${p.time}ms`);
-        particle.style.setProperty('--scale', `${p.scale}`);
-        particle.style.setProperty('--color', `var(--color-${p.color}, white)`);
-        particle.style.setProperty('--rotate', `${p.rotate}deg`);
+        const particle = document.createElement("span");
+        const point = document.createElement("span");
+        particle.classList.add("particle");
+        particle.style.setProperty("--start-x", `${p.start[0]}px`);
+        particle.style.setProperty("--start-y", `${p.start[1]}px`);
+        particle.style.setProperty("--end-x", `${p.end[0]}px`);
+        particle.style.setProperty("--end-y", `${p.end[1]}px`);
+        particle.style.setProperty("--time", `${p.time}ms`);
+        particle.style.setProperty("--scale", `${p.scale}`);
+        particle.style.setProperty("--color", `var(--color-${p.color}, white)`);
+        particle.style.setProperty("--rotate", `${p.rotate}deg`);
 
-        point.classList.add('point');
+        point.classList.add("point");
         particle.appendChild(point);
         element.appendChild(particle);
-        
+
         requestAnimationFrame(() => {
-          element.classList.add('active');
+          element.classList.add("active");
         });
 
         setTimeout(() => {
@@ -144,8 +146,14 @@ export default function Navbar() {
     }
   };
 
-  const updateEffectPosition = element => {
-    if (!containerRef.current || !filterRef.current || !textRef.current || !element) return;
+  const updateEffectPosition = (element) => {
+    if (
+      !containerRef.current ||
+      !filterRef.current ||
+      !textRef.current ||
+      !element
+    )
+      return;
     const containerRect = containerRef.current.getBoundingClientRect();
     const pos = element.getBoundingClientRect();
 
@@ -153,7 +161,7 @@ export default function Navbar() {
       left: `${pos.x - containerRect.x}px`,
       top: `${pos.y - containerRect.y}px`,
       width: `${pos.width}px`,
-      height: `${pos.height}px`
+      height: `${pos.height}px`,
     };
     Object.assign(filterRef.current.style, styles);
     Object.assign(textRef.current.style, styles);
@@ -169,17 +177,17 @@ export default function Navbar() {
     updateEffectPosition(liEl);
 
     if (filterRef.current) {
-      filterRef.current.style.opacity = '1';
-      filterRef.current.querySelectorAll('.particle').forEach((p) => {
+      filterRef.current.style.opacity = "1";
+      filterRef.current.querySelectorAll(".particle").forEach((p) => {
         p.remove();
       });
     }
 
     if (textRef.current) {
-      textRef.current.style.opacity = '1';
-      textRef.current.classList.remove('active');
+      textRef.current.style.opacity = "1";
+      textRef.current.classList.remove("active");
       void textRef.current.offsetWidth;
-      textRef.current.classList.add('active');
+      textRef.current.classList.add("active");
     }
 
     if (filterRef.current) {
@@ -190,7 +198,7 @@ export default function Navbar() {
   };
 
   const handleKeyDown = (e, index, id) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleClick(e, index, id);
     }
@@ -201,24 +209,25 @@ export default function Navbar() {
     if (isScrollLockedRef.current && scrollLockRef.current >= 0) return;
 
     if (activeIndex < 0) {
-      textRef.current?.classList.remove('active');
-      if (filterRef.current) filterRef.current.style.opacity = '0';
-      if (textRef.current) textRef.current.style.opacity = '0';
+      textRef.current?.classList.remove("active");
+      if (filterRef.current) filterRef.current.style.opacity = "0";
+      if (textRef.current) textRef.current.style.opacity = "0";
       return;
     }
 
-    if (filterRef.current) filterRef.current.style.opacity = '1';
-    if (textRef.current) textRef.current.style.opacity = '1';
+    if (filterRef.current) filterRef.current.style.opacity = "1";
+    if (textRef.current) textRef.current.style.opacity = "1";
 
-    const activeLi = navRef.current.querySelectorAll('li')[activeIndex];
+    const activeLi = navRef.current.querySelectorAll("li")[activeIndex];
     if (activeLi) {
       updateEffectPosition(activeLi);
-      textRef.current?.classList.add('active');
+      textRef.current?.classList.add("active");
     }
 
     const resizeObserver = new ResizeObserver(() => {
       if (activeIndex < 0) return;
-      const currentActiveLi = navRef.current?.querySelectorAll('li')[activeIndex];
+      const currentActiveLi =
+        navRef.current?.querySelectorAll("li")[activeIndex];
       if (currentActiveLi) updateEffectPosition(currentActiveLi);
     });
 
@@ -229,27 +238,30 @@ export default function Navbar() {
   // Handle body scroll locking when mobile slide menu is open
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === "Escape") setIsOpen(false);
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
 
   return (
     // FIX 1: Keeps the original floating layout structure with w-[92%] and top-4 positioning
     <nav className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] sm:w-[calc(100%-2rem)] max-w-7xl z-[80] transition-all duration-300">
-      
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         :root {
           --linear-ease: cubic-bezier(0.25, 1, 0.5, 1);
           --color-1: #a855f7;
@@ -422,18 +434,23 @@ export default function Navbar() {
           50% { transform: scale(var(--scale)); opacity: 1; }
           100% { transform: scale(0); opacity: 0; }
         }
-      `}} />
+      `,
+        }}
+      />
 
       {/* FIX 2: Restored your exact original rounded pill shape container configuration */}
-      <div className={`bg-[#12071f]/40 backdrop-blur-md border border-white/10 rounded-2xl md:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 flex items-center justify-between gap-3 transition-all duration-300 ${
-        isScrolled ? 'shadow-xl shadow-black/30 border-white/20 bg-[#0c0517]/70' : 'shadow-lg shadow-black/10'
-      }`}>
-        
+      <div
+        className={`bg-[#12071f]/40 backdrop-blur-md border border-white/10 rounded-2xl md:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 flex items-center justify-between gap-3 transition-all duration-300 ${
+          isScrolled
+            ? "shadow-xl shadow-black/30 border-white/20 bg-[#0c0517]/70"
+            : "shadow-lg shadow-black/10"
+        }`}
+      >
         {/* Brand Logo */}
         <button
           type="button"
           className="flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-w-0 bg-transparent border-0 p-0"
-          onClick={() => navigateToSection('home', 0)}
+          onClick={() => navigateToSection("home", 0)}
           aria-label="Go to home"
         >
           <Image
@@ -444,7 +461,9 @@ export default function Navbar() {
             className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0"
             priority
           />
-          <span className="text-white font-bold text-base sm:text-lg tracking-wider truncate">Fahad.dev</span>
+          <span className="text-white font-bold text-base sm:text-lg tracking-wider truncate">
+            Fahad.dev
+          </span>
         </button>
 
         {/* Desktop Gooey Navigation System (Desktop view kicks in perfectly on laptop breakpoints - lg) */}
@@ -453,7 +472,12 @@ export default function Navbar() {
             <nav>
               <ul ref={navRef}>
                 {navLinks.map((link, index) => (
-                  <li key={link.id} className={activeIndex >= 0 && activeIndex === index ? 'active' : ''}>
+                  <li
+                    key={link.id}
+                    className={
+                      activeIndex >= 0 && activeIndex === index ? "active" : ""
+                    }
+                  >
                     <a
                       href={`#${link.id}`}
                       onClick={(e) => handleClick(e, index, link.id)}
@@ -484,7 +508,7 @@ export default function Navbar() {
               isScrollLockedRef.current = true;
               scrollLockRef.current = NAV_ACTIVE_NONE;
               setActiveIndex(NAV_ACTIVE_NONE);
-              scrollToSectionId('contact');
+              scrollToSectionId("contact");
               clearTimeout(scrollUnlockTimerRef.current);
               scrollUnlockTimerRef.current = setTimeout(() => {
                 isScrollLockedRef.current = false;
@@ -493,7 +517,7 @@ export default function Navbar() {
             }}
           >
             <span className="block bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 shadow-md shadow-white/10">
-              Hire Me
+              Contact Me
             </span>
           </StarBorder>
         </div>
@@ -504,15 +528,31 @@ export default function Navbar() {
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="text-white hover:text-purple-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded-lg transition-colors duration-200 p-2"
-            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-label={isOpen ? "Close menu" : "Open menu"}
             aria-expanded={isOpen}
             aria-controls="mobile-nav-drawer"
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
               {isOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               )}
             </svg>
           </button>
@@ -522,7 +562,9 @@ export default function Navbar() {
       {/* Mobile overlay */}
       <div
         className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          isOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
         aria-hidden={!isOpen}
@@ -535,19 +577,32 @@ export default function Navbar() {
         aria-modal="true"
         aria-label="Mobile navigation"
         className={`fixed top-0 right-0 z-[70] h-[100dvh] w-[min(320px,88vw)] bg-[#0c061a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl transition-transform duration-300 ease-out lg:hidden flex flex-col ${
-          isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+          isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
         }`}
       >
         <div className="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-white/10 shrink-0">
-          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Navigation</p>
+          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+            Navigation
+          </p>
           <button
             type="button"
             onClick={() => setIsOpen(false)}
             className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white hover:text-purple-300 hover:border-purple-500/40 transition-colors duration-200"
             aria-label="Close menu"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -564,8 +619,8 @@ export default function Navbar() {
                 }}
                 className={`text-base font-semibold transition-colors duration-200 ${
                   activeIndex >= 0 && activeIndex === index
-                    ? 'text-purple-400 pl-2 border-l-2 border-purple-500'
-                    : 'text-gray-300 hover:text-white'
+                    ? "text-purple-400 pl-2 border-l-2 border-purple-500"
+                    : "text-gray-300 hover:text-white"
                 }`}
               >
                 {link.name}
@@ -587,7 +642,7 @@ export default function Navbar() {
               isScrollLockedRef.current = true;
               scrollLockRef.current = NAV_ACTIVE_NONE;
               setActiveIndex(NAV_ACTIVE_NONE);
-              scrollToSectionId('contact');
+              scrollToSectionId("contact");
               setIsOpen(false);
               clearTimeout(scrollUnlockTimerRef.current);
               scrollUnlockTimerRef.current = setTimeout(() => {
@@ -597,11 +652,11 @@ export default function Navbar() {
             }}
           >
             <span className="bg-gradient-to-r from-[#814bff] to-[#e2378f] text-white text-center block w-full py-3 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20">
-              Hire Me
+              Contact Me
             </span>
           </StarBorder>
         </div>
       </div>
-   </nav>
+    </nav>
   );
 }

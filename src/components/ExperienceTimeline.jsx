@@ -9,6 +9,7 @@ import {
   EffectPass,
   RenderPass,
 } from "postprocessing";
+import { throttle } from "lodash";
 
 // ==========================================
 // 1. GRIDSCAN SHADERS & HELPER FUNCTIONS
@@ -284,7 +285,14 @@ function srgbColor(hex) {
   return c.convertSRGBToLinear();
 }
 
-function smoothDampVec2(current, target, currentVelocity, smoothTime, maxSpeed, deltaTime) {
+function smoothDampVec2(
+  current,
+  target,
+  currentVelocity,
+  smoothTime,
+  maxSpeed,
+  deltaTime,
+) {
   const out = current.clone();
   smoothTime = Math.max(0.0001, smoothTime);
   const omega = 2 / smoothTime;
@@ -298,7 +306,10 @@ function smoothDampVec2(current, target, currentVelocity, smoothTime, maxSpeed, 
   if (change.length() > maxChange) change.setLength(maxChange);
 
   target = current.clone().sub(change);
-  const temp = currentVelocity.clone().addScaledVector(change, omega).multiplyScalar(deltaTime);
+  const temp = currentVelocity
+    .clone()
+    .addScaledVector(change, omega)
+    .multiplyScalar(deltaTime);
   currentVelocity.sub(temp.clone().multiplyScalar(omega));
   currentVelocity.multiplyScalar(exp);
 
@@ -313,7 +324,14 @@ function smoothDampVec2(current, target, currentVelocity, smoothTime, maxSpeed, 
   return out;
 }
 
-function smoothDampFloat(current, target, velRef, smoothTime, maxSpeed, deltaTime) {
+function smoothDampFloat(
+  current,
+  target,
+  velRef,
+  smoothTime,
+  maxSpeed,
+  deltaTime,
+) {
   smoothTime = Math.max(0.0001, smoothTime);
   const omega = 2 / smoothTime;
   const x = omega * deltaTime;
@@ -374,16 +392,16 @@ function dist2(a, b) {
 const GridScan = ({
   enableWebcam = false,
   showPreview = false,
-  modelsPath = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights',
+  modelsPath = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights",
   sensitivity = 0.55,
   lineThickness = 1,
-  linesColor = '#2F293A',
-  scanColor = '#FF9FFC',
+  linesColor = "#2F293A",
+  scanColor = "#FF9FFC",
   scanOpacity = 0.4,
   gridScale = 0.1,
-  lineStyle = 'solid',
+  lineStyle = "solid",
   lineJitter = 0.1,
-  scanDirection = 'pingpong',
+  scanDirection = "pingpong",
   enablePost = true,
   bloomIntensity = 0,
   bloomThreshold = 0,
@@ -399,7 +417,7 @@ const GridScan = ({
   scanOnClick = false,
   snapBackDelay = 250,
   className,
-  style
+  style,
 }) => {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
@@ -429,7 +447,7 @@ const GridScan = ({
   const MAX_SCANS = 8;
   const scanStartsRef = useRef([]);
 
-  const pushScan = t => {
+  const pushScan = (t) => {
     const arr = scanStartsRef.current.slice();
     if (arr.length >= MAX_SCANS) arr.shift();
     arr.push(t);
@@ -462,23 +480,21 @@ const GridScan = ({
     const el = containerRef.current;
     if (!el) return;
     let leaveTimer = null;
-    const onMove = e => {
+
+    const onMove = throttle((e) => {
       if (uiFaceActive) return;
-      if (leaveTimer) {
-        clearTimeout(leaveTimer);
-        leaveTimer = null;
-      }
       const rect = el.getBoundingClientRect();
       const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
       lookTarget.current.set(nx, ny);
-    };
+    }, 100); // Throttle with 100ms delay
+
     const onClick = async () => {
       const nowSec = performance.now() / 1000;
       if (scanOnClick) pushScan(nowSec);
       if (
         enableGyro &&
-        typeof window !== 'undefined' &&
+        typeof window !== "undefined" &&
         window.DeviceOrientationEvent &&
         DeviceOrientationEvent.requestPermission
       ) {
@@ -489,36 +505,32 @@ const GridScan = ({
         }
       }
     };
+
     const onEnter = () => {
       if (leaveTimer) {
         clearTimeout(leaveTimer);
         leaveTimer = null;
       }
     };
+
     const onLeave = () => {
       if (uiFaceActive) return;
       if (leaveTimer) clearTimeout(leaveTimer);
-      leaveTimer = window.setTimeout(
-        () => {
-          lookTarget.current.set(0, 0);
-          tiltTarget.current = 0;
-          yawTarget.current = 0;
-        },
-        Math.max(0, snapBackDelay || 0)
-      );
     };
-    el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseenter', onEnter);
-    if (scanOnClick) el.addEventListener('click', onClick);
-    el.addEventListener('mouseleave', onLeave);
+
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("click", onClick);
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
+
     return () => {
-      el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseenter', onEnter);
-      el.removeEventListener('mouseleave', onLeave);
-      if (scanOnClick) el.removeEventListener('click', onClick);
-      if (leaveTimer) clearTimeout(leaveTimer);
+      el.removeEventListener("mousemove", onMove);
+      el.removeEventListener("click", onClick);
+      el.removeEventListener("mouseenter", onEnter);
+      el.removeEventListener("mouseleave", onLeave);
+      onMove.cancel(); // Cancel throttle on cleanup
     };
-  }, [uiFaceActive, snapBackDelay, scanOnClick, enableGyro]);
+  }, [uiFaceActive, scanOnClick, enableGyro]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -536,7 +548,11 @@ const GridScan = ({
 
     const uniforms = {
       iResolution: {
-        value: new THREE.Vector3(container.clientWidth, container.clientHeight, renderer.getPixelRatio())
+        value: new THREE.Vector3(
+          container.clientWidth,
+          container.clientHeight,
+          renderer.getPixelRatio(),
+        ),
       },
       iTime: { value: 0 },
       uSkew: { value: new THREE.Vector2(0, 0) },
@@ -546,7 +562,9 @@ const GridScan = ({
       uLinesColor: { value: srgbColor(linesColor) },
       uScanColor: { value: srgbColor(scanColor) },
       uGridScale: { value: gridScale },
-      uLineStyle: { value: lineStyle === 'dashed' ? 1 : lineStyle === 'dotted' ? 2 : 0 },
+      uLineStyle: {
+        value: lineStyle === "dashed" ? 1 : lineStyle === "dotted" ? 2 : 0,
+      },
       uLineJitter: { value: Math.max(0, Math.min(1, lineJitter || 0)) },
       uScanOpacity: { value: scanOpacity },
       uNoise: { value: noiseIntensity },
@@ -556,9 +574,16 @@ const GridScan = ({
       uPhaseTaper: { value: scanPhaseTaper },
       uScanDuration: { value: scanDuration },
       uScanDelay: { value: scanDelay },
-      uScanDirection: { value: scanDirection === 'backward' ? 1 : scanDirection === 'pingpong' ? 2 : 0 },
+      uScanDirection: {
+        value:
+          scanDirection === "backward"
+            ? 1
+            : scanDirection === "pingpong"
+              ? 2
+              : 0,
+      },
       uScanStarts: { value: new Array(MAX_SCANS).fill(0) },
-      uScanCount: { value: 0 }
+      uScanCount: { value: 0 },
     };
 
     const material = new THREE.ShaderMaterial({
@@ -567,7 +592,7 @@ const GridScan = ({
       fragmentShader: frag,
       transparent: true,
       depthWrite: false,
-      depthTest: false
+      depthTest: false,
     });
     materialRef.current = material;
 
@@ -586,7 +611,7 @@ const GridScan = ({
       const bloom = new BloomEffect({
         intensity: 1.0,
         luminanceThreshold: bloomThreshold,
-        luminanceSmoothing: bloomSmoothing
+        luminanceSmoothing: bloomSmoothing,
       });
       bloom.blendMode.opacity.value = Math.max(0, bloomIntensity);
       bloomRef.current = bloom;
@@ -594,7 +619,7 @@ const GridScan = ({
       const chroma = new ChromaticAberrationEffect({
         offset: new THREE.Vector2(chromaticAberration, chromaticAberration),
         radialModulation: true,
-        modulationOffset: 0.0
+        modulationOffset: 0.0,
       });
       chromaRef.current = chroma;
 
@@ -605,10 +630,18 @@ const GridScan = ({
 
     const onResize = () => {
       renderer.setSize(container.clientWidth, container.clientHeight);
-      material.uniforms.iResolution.value.set(container.clientWidth, container.clientHeight, renderer.getPixelRatio());
-      if (composerRef.current) composerRef.current.setSize(container.clientWidth, container.clientHeight);
+      material.uniforms.iResolution.value.set(
+        container.clientWidth,
+        container.clientHeight,
+        renderer.getPixelRatio(),
+      );
+      if (composerRef.current)
+        composerRef.current.setSize(
+          container.clientWidth,
+          container.clientHeight,
+        );
     };
-    window.addEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
 
     let last = performance.now();
     const tick = () => {
@@ -617,7 +650,14 @@ const GridScan = ({
       last = now;
 
       lookCurrent.current.copy(
-        smoothDampVec2(lookCurrent.current, lookTarget.current, lookVel.current, smoothTime, maxSpeed, dt)
+        smoothDampVec2(
+          lookCurrent.current,
+          lookTarget.current,
+          lookVel.current,
+          smoothTime,
+          maxSpeed,
+          dt,
+        ),
       );
 
       const tiltSm = smoothDampFloat(
@@ -626,7 +666,7 @@ const GridScan = ({
         { v: tiltVel.current },
         smoothTime,
         maxSpeed,
-        dt
+        dt,
       );
       tiltCurrent.current = tiltSm.value;
       tiltVel.current = tiltSm.v;
@@ -637,15 +677,22 @@ const GridScan = ({
         { v: yawVel.current },
         smoothTime,
         maxSpeed,
-        dt
+        dt,
       );
       yawCurrent.current = yawSm.value;
       yawVel.current = yawSm.v;
 
-      const skew = new THREE.Vector2(lookCurrent.current.x * skewScale, -lookCurrent.current.y * yBoost * skewScale);
+      const skew = new THREE.Vector2(
+        lookCurrent.current.x * skewScale,
+        -lookCurrent.current.y * yBoost * skewScale,
+      );
       material.uniforms.uSkew.value.set(skew.x, skew.y);
       material.uniforms.uTilt.value = tiltCurrent.current * tiltScale;
-      material.uniforms.uYaw.value = THREE.MathUtils.clamp(yawCurrent.current * yawScale, -0.6, 0.6);
+      material.uniforms.uYaw.value = THREE.MathUtils.clamp(
+        yawCurrent.current * yawScale,
+        -0.6,
+        0.6,
+      );
 
       material.uniforms.iTime.value = now / 1000;
       renderer.clear(true, true, true);
@@ -660,7 +707,7 @@ const GridScan = ({
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener("resize", onResize);
       material.dispose();
       quad.geometry.dispose();
 
@@ -698,7 +745,7 @@ const GridScan = ({
     skewScale,
     yBoost,
     tiltScale,
-    yawScale
+    yawScale,
   ]);
 
   useEffect(() => {
@@ -709,13 +756,15 @@ const GridScan = ({
       u.uLinesColor.value.copy(srgbColor(linesColor));
       u.uScanColor.value.copy(srgbColor(scanColor));
       u.uGridScale.value = gridScale;
-      u.uLineStyle.value = lineStyle === 'dashed' ? 1 : lineStyle === 'dotted' ? 2 : 0;
+      u.uLineStyle.value =
+        lineStyle === "dashed" ? 1 : lineStyle === "dotted" ? 2 : 0;
       u.uLineJitter.value = Math.max(0, Math.min(1, lineJitter || 0));
       u.uBloomOpacity.value = Math.max(0, bloomIntensity);
       u.uNoise.value = Math.max(0, noiseIntensity);
       u.uScanGlow.value = scanGlow;
       u.uScanOpacity.value = Math.max(0, Math.min(1, scanOpacity));
-      u.uScanDirection.value = scanDirection === 'backward' ? 1 : scanDirection === 'pingpong' ? 2 : 0;
+      u.uScanDirection.value =
+        scanDirection === "backward" ? 1 : scanDirection === "pingpong" ? 2 : 0;
       u.uScanSoftness.value = scanSoftness;
       u.uPhaseTaper.value = scanPhaseTaper;
       u.uScanDuration.value = Math.max(0.05, scanDuration);
@@ -747,12 +796,12 @@ const GridScan = ({
     scanSoftness,
     scanPhaseTaper,
     scanDuration,
-    scanDelay
+    scanDelay,
   ]);
 
   useEffect(() => {
     if (!enableGyro) return;
-    const handler = e => {
+    const handler = (e) => {
       if (uiFaceActive) return;
       const gamma = e.gamma ?? 0;
       const beta = e.beta ?? 0;
@@ -761,9 +810,9 @@ const GridScan = ({
       lookTarget.current.set(nx, ny);
       tiltTarget.current = THREE.MathUtils.degToRad(gamma) * 0.4;
     };
-    window.addEventListener('deviceorientation', handler);
+    window.addEventListener("deviceorientation", handler);
     return () => {
-      window.removeEventListener('deviceorientation', handler);
+      window.removeEventListener("deviceorientation", handler);
     };
   }, [enableGyro, uiFaceActive]);
 
@@ -802,8 +851,12 @@ const GridScan = ({
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
         });
         video.srcObject = stream;
         await video.play();
@@ -814,15 +867,20 @@ const GridScan = ({
       const faceapi = faceapiModuleRef.current;
       if (!faceapi) return;
 
-      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+      const opts = new faceapi.TinyFaceDetectorOptions({
+        inputSize: 320,
+        scoreThreshold: 0.5,
+      });
 
-      const detect = async ts => {
+      const detect = async (ts) => {
         if (stop) return;
 
         if (ts - lastDetect >= 33) {
           lastDetect = ts;
           try {
-            const res = await faceapi.detectSingleFace(video, opts).withFaceLandmarks(true);
+            const res = await faceapi
+              .detectSingleFace(video, opts)
+              .withFaceLandmarks(true);
             if (res && res.detection) {
               const det = res.detection;
               const box = det.box;
@@ -840,7 +898,10 @@ const GridScan = ({
 
               const look = new THREE.Vector2(Math.tanh(nxm), Math.tanh(nym));
 
-              const faceSize = Math.min(1, Math.hypot(box.width / vw, box.height / vh));
+              const faceSize = Math.min(
+                1,
+                Math.hypot(box.width / vw, box.height / vh),
+              );
               const depthScale = 1 + depthResponse * (faceSize - 0.25);
               lookTarget.current.copy(look.multiplyScalar(depthScale));
 
@@ -853,14 +914,19 @@ const GridScan = ({
               tiltTarget.current = median(bufT.current);
 
               const nose = res.landmarks.getNose();
-              const tip = nose[nose.length - 1] || nose[Math.floor(nose.length / 2)];
+              const tip =
+                nose[nose.length - 1] || nose[Math.floor(nose.length / 2)];
               const jaw = res.landmarks.getJawOutline();
               const leftCheek = jaw[3] || jaw[2];
               const rightCheek = jaw[13] || jaw[14];
               const dL = dist2(tip, leftCheek);
               const dR = dist2(tip, rightCheek);
               const eyeDist = Math.hypot(rc.x - lc.x, rc.y - lc.y) + 1e-6;
-              let yawSignal = THREE.MathUtils.clamp((dR - dL) / (eyeDist * 1.6), -1, 1);
+              let yawSignal = THREE.MathUtils.clamp(
+                (dR - dL) / (eyeDist * 1.6),
+                -1,
+                1,
+              );
               yawSignal = Math.tanh(yawSignal);
               medianPush(bufYaw.current, yawSignal, 5);
               yawTarget.current = median(bufYaw.current);
@@ -874,7 +940,7 @@ const GridScan = ({
           }
         }
 
-        if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+        if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
           video.requestVideoFrameCallback(() => detect(performance.now()));
         } else {
           requestAnimationFrame(detect);
@@ -890,7 +956,7 @@ const GridScan = ({
       stop = true;
       if (video) {
         const stream = video.srcObject;
-        if (stream) stream.getTracks().forEach(t => t.stop());
+        if (stream) stream.getTracks().forEach((t) => t.stop());
         video.pause();
         video.srcObject = null;
       }
@@ -898,18 +964,28 @@ const GridScan = ({
   }, [enableWebcam, modelsReady, depthResponse]);
 
   return (
-    <div ref={containerRef} className={`relative w-full h-full overflow-hidden ${className ?? ''}`} style={style}>
+    <div
+      ref={containerRef}
+      className={`relative w-full h-full overflow-hidden ${className ?? ""}`}
+      style={style}
+    >
       {showPreview && (
         <div className="right-3 bottom-3 absolute bg-black shadow-[0_4px_16px_rgba(0,0,0,0.4)] border border-white/25 rounded-lg w-[220px] h-[132px] overflow-hidden font-sans text-[12px] text-white leading-[1.2] pointer-events-none">
-          <video ref={videoRef} muted playsInline autoPlay className="w-full h-full object-cover -scale-x-100" />
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            autoPlay
+            className="w-full h-full object-cover -scale-x-100"
+          />
           <div className="top-2 left-2 absolute bg-black/50 backdrop-blur-[4px] px-[6px] py-[2px] rounded-[6px]">
             {enableWebcam
               ? modelsReady
                 ? uiFaceActive
-                  ? 'Face: tracking'
-                  : 'Face: searching'
-                : 'Loading models'
-              : 'Webcam disabled'}
+                  ? "Face: tracking"
+                  : "Face: searching"
+                : "Loading models"
+              : "Webcam disabled"}
           </div>
         </div>
       )}
@@ -928,8 +1004,15 @@ const experienceData = [
     role: "Junior Full Stack Developer",
     company: "Exprovia",
     type: "Full-time",
-    description: "Building and maintaining full-stack web applications for enterprise clients. Collaborating with design and product teams to deliver high-quality, scalable solutions. Contributing to architecture decisions and code reviews in an Agile environment.",
-    technologies: ["Next.js", "Node.js", "MongoDB", "Tailwind CSS", "REST APIs"],
+    description:
+      "Building and maintaining full-stack web applications for enterprise clients. Collaborating with design and product teams to deliver high-quality, scalable solutions. Contributing to architecture decisions and code reviews in an Agile environment.",
+    technologies: [
+      "Next.js",
+      "Node.js",
+      "MongoDB",
+      "Tailwind CSS",
+      "REST APIs",
+    ],
     dotColor: "bg-[#6366f1]", // Indigo/Purple dot
   },
   {
@@ -938,7 +1021,8 @@ const experienceData = [
     role: "Frontend Developer Intern",
     company: "Tech Startup (Remote)",
     type: "",
-    description: "Developed responsive UI components using React.js and Tailwind CSS. Implemented GSAP animations and improved page load performance by 40%. Collaborated with backend team to integrate REST APIs.",
+    description:
+      "Developed responsive UI components using React.js and Tailwind CSS. Implemented GSAP animations and improved page load performance by 40%. Collaborated with backend team to integrate REST APIs.",
     technologies: ["React.js", "Tailwind CSS", "GSAP", "JavaScript"],
     dotColor: "bg-[#ec4899]", // Pink dot
   },
@@ -948,10 +1032,11 @@ const experienceData = [
     role: "Freelance Web Developer",
     company: "Independent",
     type: "Multiple Clients",
-    description: "Delivered custom web solutions for local businesses and startups. Built e-commerce sites, landing pages, and web apps. Managed client relationships and project timelines independently.",
+    description:
+      "Delivered custom web solutions for local businesses and startups. Built e-commerce sites, landing pages, and web apps. Managed client relationships and project timelines independently.",
     technologies: ["HTML/CSS", "JavaScript", "Bootstrap", "WordPress"],
     dotColor: "bg-[#10b981]", // Green dot
-  }
+  },
 ];
 
 // ==========================================
@@ -960,8 +1045,10 @@ const experienceData = [
 
 export default function ExperienceTimeline() {
   return (
-    <section id="experience" className="relative min-h-screen bg-[#07080d] text-white py-24 z-0 overflow-hidden scroll-mt-28">
-      
+    <section
+      id="experience"
+      className="relative min-h-screen bg-[#07080d] text-white py-24 z-0 overflow-hidden scroll-mt-28"
+    >
       {/* Background GridScan Component */}
       <div className="absolute inset-0 z-[-1] opacity-70 pointer-events-none">
         <GridScan
@@ -979,17 +1066,29 @@ export default function ExperienceTimeline() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
-        
         {/* Section Header */}
         <div className="mb-16">
           <div className="flex items-center gap-2 text-xs font-semibold tracking-widest text-[#8b5cf6] uppercase mb-4">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
             EXPERIENCE
           </div>
           <h2 className="text-4xl lg:text-5xl font-bold tracking-tight mb-3">
-            Career <span className="bg-gradient-to-r from-[#a855f7] to-[#ec4899] bg-clip-text text-transparent">Timeline</span>
+            Career{" "}
+            <span className="bg-gradient-to-r from-[#a855f7] to-[#ec4899] bg-clip-text text-transparent">
+              Timeline
+            </span>
           </h2>
           <p className="text-[#94a3b8] text-sm">
             My professional journey in software development.
@@ -998,23 +1097,32 @@ export default function ExperienceTimeline() {
 
         {/* Timeline Container */}
         <div className="relative pl-4 md:pl-8 border-l border-[#2F293A]">
-          
           <div className="flex flex-col gap-10">
             {experienceData.map((exp, index) => (
               <div key={exp.id} className="relative group">
-                
                 {/* Timeline Dot */}
                 <div className="absolute -left-[21px] md:-left-[37px] top-5 w-4 h-4 rounded-full bg-[#07080d] border-[3px] border-[#07080d] flex items-center justify-center z-10">
-                  <div className={`w-2 h-2 rounded-full ${exp.dotColor} shadow-[0_0_10px_currentColor]`} />
+                  <div
+                    className={`w-2 h-2 rounded-full ${exp.dotColor} shadow-[0_0_10px_currentColor]`}
+                  />
                 </div>
 
                 {/* Experience Card */}
                 <div className="bg-[#111322]/80 backdrop-blur-sm border border-white/[0.04] p-6 md:p-8 rounded-2xl shadow-xl transition-all duration-300 hover:border-white/[0.1] hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(139,92,246,0.05)]">
-                  
                   {/* Date Badge */}
                   <div className="inline-flex items-center gap-2 text-xs font-medium text-[#94a3b8] mb-3">
-                    <svg className="w-3.5 h-3.5 text-[#a855f7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <svg
+                      className="w-3.5 h-3.5 text-[#a855f7]"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
                     </svg>
                     {exp.date}
                   </div>
@@ -1026,7 +1134,9 @@ export default function ExperienceTimeline() {
                   <div className="text-sm font-medium mt-1 mb-5">
                     <span className="text-[#94a3b8]">at </span>
                     <span className="text-[#10b981]">{exp.company}</span>
-                    {exp.type && <span className="text-[#64748b]"> — {exp.type}</span>}
+                    {exp.type && (
+                      <span className="text-[#64748b]"> — {exp.type}</span>
+                    )}
                   </div>
 
                   {/* Description */}
@@ -1037,7 +1147,7 @@ export default function ExperienceTimeline() {
                   {/* Technologies Pill Tags */}
                   <div className="flex flex-wrap gap-2">
                     {exp.technologies.map((tech, idx) => (
-                      <span 
+                      <span
                         key={idx}
                         className="text-[11px] font-medium px-3 py-1.5 rounded-md bg-[#1e1b4b]/50 text-[#a5b4fc] border border-[#4338ca]/30 transition-colors group-hover:border-[#4338ca]/60 group-hover:text-white"
                       >
@@ -1045,12 +1155,10 @@ export default function ExperienceTimeline() {
                       </span>
                     ))}
                   </div>
-
                 </div>
               </div>
             ))}
           </div>
-          
         </div>
       </div>
     </section>

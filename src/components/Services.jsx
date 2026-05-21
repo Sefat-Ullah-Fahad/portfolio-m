@@ -909,7 +909,7 @@ export default function Services() {
     <section
       ref={sectionRef}
       id="services"
-      className="relative w-full bg-[#030108] text-white py-20 sm:py-24 overflow-hidden"
+      className="relative w-full bg-[#030108] text-white py-20 sm:py-24 overflow-hidden scroll-mt-28"
       aria-labelledby="services-heading"
     >
       <script

@@ -10,7 +10,7 @@ const statsData = [
 
 export default function StatsSection() {
   return (
-    <section className="bg-[#07080d] py-20 px-5 flex items-center justify-center ">
+    <section id="skills" className="bg-[#07080d] py-20 px-4 sm:px-6 lg:px-8 flex items-center justify-center scroll-mt-28">
       <div className="max-w-7xl w-full mx-auto">
         {/* Responsive Grid Layout */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">

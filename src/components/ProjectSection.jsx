@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import StarBorder from "@/components/StarBorder";
 
 const projectsData = [
   {
@@ -36,7 +37,7 @@ const projectsData = [
 
 export default function ProjectSection() {
   return (
-    <section className="bg-[#07080d] py-24 px-4 sm:px-6 lg:px-8 min-h-screen text-white">
+    <section id="projects" className="bg-[#07080d] py-24 px-4 sm:px-6 lg:px-8 min-h-screen text-white scroll-mt-28">
       <div className="max-w-7xl w-full mx-auto">
         
         {/* Section Header */}
@@ -123,17 +124,22 @@ export default function ProjectSection() {
                 </div>
 
                 {/* View Project Button */}
-                <a 
-                  href={project.url} 
-                  target="_blank" 
+                <StarBorder
+                  as="a"
+                  href={project.url}
+                  target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-xs font-medium bg-[#1e1b4b] hover:bg-gradient-to-r hover:from-[#6366f1] hover:to-[#a855f7] border border-[#4338ca] hover:border-transparent text-white rounded-xl transition-all duration-300 shadow-lg group/btn"
+                  color="#6366f1"
+                  speed="5s"
+                  className="rounded-xl w-full sm:w-auto"
                 >
-                  View Project
-                  <svg className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </a>
+                  <span className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-xs font-medium bg-[#1e1b4b] hover:bg-gradient-to-r hover:from-[#6366f1] hover:to-[#a855f7] border border-[#4338ca] hover:border-transparent text-white rounded-xl transition-all duration-300 shadow-lg group/btn">
+                    View Project
+                    <svg className="w-3.5 h-3.5 transform transition-transform duration-300 group-hover/btn:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                </StarBorder>
               </div>
 
               {/* Right Side: Clean Image Container */}

@@ -1,10 +1,13 @@
+'use client';
+
+import StarBorder from '@/components/StarBorder';
 import { SITE } from '@/lib/site';
 
 export default function Contact() {
   return (
     <section
       id="contact"
-      className="relative w-full bg-[#030108] text-white py-20 sm:py-24 scroll-mt-28"
+      className="relative w-full bg-[#030108] text-white py-20 sm:py-24 px-4 sm:px-6 scroll-mt-28"
       aria-labelledby="contact-heading"
     >
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 text-center">
@@ -17,19 +20,29 @@ export default function Contact() {
         <p className="text-gray-400 max-w-xl mx-auto text-base md:text-lg mb-8">
           Have a project in mind? Reach out and let&apos;s build something fast, scalable, and impactful.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-2xl mx-auto">
+          <StarBorder
+            as="a"
             href={`mailto:${SITE.email}`}
-            className="px-8 py-3.5 bg-white text-black font-bold rounded-full hover:bg-purple-500 hover:text-white transition-all shadow-lg"
+            color="#c084fc"
+            speed="5s"
+            className="rounded-full w-full sm:w-auto"
           >
-            {SITE.email}
-          </a>
-          <a
+            <span className="block px-8 py-3.5 bg-white text-black font-bold rounded-full hover:bg-purple-500 hover:text-white transition-all shadow-lg text-center text-sm sm:text-base break-all sm:break-normal">
+              {SITE.email}
+            </span>
+          </StarBorder>
+          <StarBorder
+            as="a"
             href={`tel:${SITE.phone.replace(/\s/g, '')}`}
-            className="px-8 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:border-purple-500/50 hover:bg-purple-500/10 transition-all"
+            color="#a855f7"
+            speed="5s"
+            className="rounded-full w-full sm:w-auto"
           >
-            {SITE.phone}
-          </a>
+            <span className="block px-8 py-3.5 border border-white/20 text-white font-semibold rounded-full hover:border-purple-500/50 hover:bg-purple-500/10 transition-all text-center">
+              {SITE.phone}
+            </span>
+          </StarBorder>
         </div>
       </div>
     </section>

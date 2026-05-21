@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import * as faceapi from "face-api.js";
 import {
   BloomEffect,
   ChromaticAberrationEffect,
@@ -404,6 +403,7 @@ const GridScan = ({
 }) => {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
+  const faceapiModuleRef = useRef(null);
 
   const rendererRef = useRef(null);
   const materialRef = useRef(null);
@@ -771,11 +771,16 @@ const GridScan = ({
     let canceled = false;
     const load = async () => {
       try {
+        const faceapi = await import("face-api.js");
+        if (canceled) return;
         await Promise.all([
           faceapi.nets.tinyFaceDetector.loadFromUri(modelsPath),
-          faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelsPath)
+          faceapi.nets.faceLandmark68TinyNet.loadFromUri(modelsPath),
         ]);
-        if (!canceled) setModelsReady(true);
+        if (!canceled) {
+          faceapiModuleRef.current = faceapi;
+          setModelsReady(true);
+        }
       } catch {
         if (!canceled) setModelsReady(false);
       }
@@ -805,6 +810,9 @@ const GridScan = ({
       } catch {
         return;
       }
+
+      const faceapi = faceapiModuleRef.current;
+      if (!faceapi) return;
 
       const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
 
@@ -952,7 +960,7 @@ const experienceData = [
 
 export default function ExperienceTimeline() {
   return (
-    <section className="relative min-h-screen bg-[#07080d] text-white py-24 z-0 overflow-hidden">
+    <section id="experience" className="relative min-h-screen bg-[#07080d] text-white py-24 z-0 overflow-hidden scroll-mt-28">
       
       {/* Background GridScan Component */}
       <div className="absolute inset-0 z-[-1] opacity-70 pointer-events-none">

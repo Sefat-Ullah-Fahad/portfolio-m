@@ -1,6 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import StarBorder from '@/components/StarBorder';
+import { NAV_SECTIONS } from '@/lib/navSections';
+import {
+  NAV_ACTIVE_NONE,
+  getNavActiveIndexFromScroll,
+  getSectionScrollTop,
+  scrollToSectionId,
+} from '@/lib/navScroll';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +20,8 @@ export default function Navbar() {
   const filterRef = useRef(null);
   const textRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const scrollLockRef = useRef(null);
+  const scrollUnlockTimerRef = useRef(null);
 
   // Configuration Props for Gooey Effect
   const animationTime = 600;
@@ -21,53 +31,54 @@ export default function Navbar() {
   const timeVariance = 250;
   const colors = [1, 2, 3, 4, 1, 2]; 
 
-  const navLinks = [
-    { name: 'Home', id: 'home' },
-    
-    { name: 'About', id: 'about' },
-    { name: 'Stack', id: 'stack' },
-     { name: 'Services', id: 'services' },
-    { name: 'Skills', id: 'skills' },
-   
-    { name: 'Projects', id: 'projects' },
-    { name: 'Experience', id: 'experience' },
-  ];
+  const navLinks = NAV_SECTIONS;
 
-  // Monitor scroll state + active section on scroll (scroll spy)
+  const navigateToSection = (id, index) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    scrollLockRef.current = index;
+    setActiveIndex(index);
+    scrollToSectionId(id);
+    setIsOpen(false);
+
+    clearTimeout(scrollUnlockTimerRef.current);
+    scrollUnlockTimerRef.current = setTimeout(() => {
+      scrollLockRef.current = null;
+    }, 1000);
+  };
+
+  // Scroll spy — locked while smooth-scrolling after a nav click
   useEffect(() => {
-    const NAV_OFFSET = 100;
-
-    const getActiveIndex = () => {
-      let active = 0;
-      navLinks.forEach((link, index) => {
-        const el = document.getElementById(link.id);
-        if (!el) return;
-        const top = el.getBoundingClientRect().top;
-        if (top <= NAV_OFFSET) active = index;
-      });
-      // Services section exists but is not in nav — keep highlight on Stack until past services
-      const servicesEl = document.getElementById('services');
-      if (servicesEl && servicesEl.getBoundingClientRect().top <= NAV_OFFSET) {
-        const stackIndex = navLinks.findIndex((l) => l.id === 'stack');
-        if (stackIndex >= 0) active = stackIndex;
-      }
-      return active;
-    };
-
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
+      setIsScrolled(window.scrollY > 20);
+
+      if (scrollLockRef.current !== null && scrollLockRef.current >= 0) {
+        const locked = scrollLockRef.current;
+        const el = document.getElementById(navLinks[locked]?.id);
+        if (el) {
+          const targetTop = getSectionScrollTop(navLinks[locked].id);
+          if (Math.abs(window.scrollY - targetTop) > 24) {
+            setActiveIndex(locked);
+            return;
+          }
+        }
+        scrollLockRef.current = null;
       }
-      const nextIndex = getActiveIndex();
+
+      const nextIndex = getNavActiveIndexFromScroll();
       setActiveIndex((prev) => (prev !== nextIndex ? nextIndex : prev));
     };
 
     handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      clearTimeout(scrollUnlockTimerRef.current);
+    };
+  }, [navLinks]);
 
   // Gooey Particle helper functions
   const noise = (n = 1) => n / 2 - Math.random() * n;
@@ -151,22 +162,22 @@ export default function Navbar() {
 
   const handleClick = (e, index, id) => {
     e.preventDefault();
-    const liEl = e.currentTarget.parentElement; 
+    const liEl = e.currentTarget.parentElement;
     if (!liEl) return;
-    
-    if (activeIndex === index) return;
 
     setActiveIndex(index);
     updateEffectPosition(liEl);
 
     if (filterRef.current) {
+      filterRef.current.style.opacity = '1';
       const particles = filterRef.current.querySelectorAll('.particle');
-      particles.forEach(p => filterRef.current.removeChild(p));
+      particles.forEach((p) => filterRef.current.removeChild(p));
     }
 
     if (textRef.current) {
+      textRef.current.style.opacity = '1';
       textRef.current.classList.remove('active');
-      void textRef.current.offsetWidth; 
+      void textRef.current.offsetWidth;
       textRef.current.classList.add('active');
     }
 
@@ -174,17 +185,7 @@ export default function Navbar() {
       makeParticles(filterRef.current);
     }
 
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 100;
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = element.getBoundingClientRect().top;
-      window.scrollTo({
-        top: elementRect - bodyRect - offset,
-        behavior: 'smooth',
-      });
-      setIsOpen(false);
-    }
+    navigateToSection(id, index);
   };
 
   const handleKeyDown = (e, index, id) => {
@@ -196,6 +197,17 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!navRef.current || !containerRef.current) return;
+
+    if (activeIndex < 0) {
+      textRef.current?.classList.remove('active');
+      if (filterRef.current) filterRef.current.style.opacity = '0';
+      if (textRef.current) textRef.current.style.opacity = '0';
+      return;
+    }
+
+    if (filterRef.current) filterRef.current.style.opacity = '1';
+    if (textRef.current) textRef.current.style.opacity = '1';
+
     const activeLi = navRef.current.querySelectorAll('li')[activeIndex];
     if (activeLi) {
       updateEffectPosition(activeLi);
@@ -203,10 +215,9 @@ export default function Navbar() {
     }
 
     const resizeObserver = new ResizeObserver(() => {
+      if (activeIndex < 0) return;
       const currentActiveLi = navRef.current?.querySelectorAll('li')[activeIndex];
-      if (currentActiveLi) {
-        updateEffectPosition(currentActiveLi);
-      }
+      if (currentActiveLi) updateEffectPosition(currentActiveLi);
     });
 
     resizeObserver.observe(containerRef.current);
@@ -223,9 +234,18 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
+
   return (
     // FIX 1: Keeps the original floating layout structure with w-[92%] and top-4 positioning
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[92%] max-w-7xl z-50 transition-all duration-300">
+    <nav className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] sm:w-[calc(100%-2rem)] max-w-7xl z-[80] transition-all duration-300">
       
       <style dangerouslySetInnerHTML={{ __html: `
         :root {
@@ -403,23 +423,21 @@ export default function Navbar() {
       `}} />
 
       {/* FIX 2: Restored your exact original rounded pill shape container configuration */}
-      <div className={`bg-[#12071f]/40 backdrop-blur-md border border-white/10 rounded-2xl md:rounded-full px-6 py-3 md:py-4 flex items-center justify-between transition-all duration-300 ${
+      <div className={`bg-[#12071f]/40 backdrop-blur-md border border-white/10 rounded-2xl md:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 flex items-center justify-between gap-3 transition-all duration-300 ${
         isScrolled ? 'shadow-xl shadow-black/30 border-white/20 bg-[#0c0517]/70' : 'shadow-lg shadow-black/10'
       }`}>
         
         {/* Brand Logo */}
-        <div className="flex items-center gap-2 cursor-pointer relative z-50" onClick={() => {
-          setIsOpen(false);
-          setActiveIndex(0);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+        <div className="flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 min-w-0" onClick={() => {
+          navigateToSection('home', 0);
         }}>
-          <svg className="w-7 h-7 text-purple-400 animate-spin" style={{ animationDuration: '8s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 animate-spin shrink-0" style={{ animationDuration: '8s' }} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <ellipse cx="50" cy="50" rx="15" ry="40" stroke="currentColor" strokeWidth="4" transform="rotate(30 50 50)" />
             <ellipse cx="50" cy="50" rx="15" ry="40" stroke="currentColor" strokeWidth="4" transform="rotate(90 50 50)" />
             <ellipse cx="50" cy="50" rx="15" ry="40" stroke="currentColor" strokeWidth="4" transform="rotate(150 50 50)" />
             <circle cx="50" cy="50" r="5" fill="currentColor" />
           </svg>
-          <span className="text-white font-bold text-lg tracking-wider">Fahad.dev</span>
+          <span className="text-white font-bold text-base sm:text-lg tracking-wider truncate">Fahad.dev</span>
         </div>
 
         {/* Desktop Gooey Navigation System (Desktop view kicks in perfectly on laptop breakpoints - lg) */}
@@ -428,7 +446,7 @@ export default function Navbar() {
             <nav>
               <ul ref={navRef}>
                 {navLinks.map((link, index) => (
-                  <li key={link.id} className={activeIndex === index ? 'active' : ''}>
+                  <li key={link.id} className={activeIndex >= 0 && activeIndex === index ? 'active' : ''}>
                     <a 
                       href={`#${link.id}`} 
                       onClick={e => handleClick(e, index, link.id)} 
@@ -447,27 +465,37 @@ export default function Navbar() {
 
         {/* CTA Button */}
         <div className="hidden lg:block">
-          <a
+          <StarBorder
+            as="a"
             href="#contact"
+            color="#c084fc"
+            speed="5s"
+            thickness={1}
+            className="rounded-full"
             onClick={(e) => {
               e.preventDefault();
-              const el = document.getElementById('contact');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              scrollLockRef.current = NAV_ACTIVE_NONE;
+              setActiveIndex(NAV_ACTIVE_NONE);
+              scrollToSectionId('contact');
             }}
-            className="bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 shadow-md shadow-white/10"
           >
-            Hire Me
-          </a>
+            <span className="block bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full text-sm font-semibold tracking-wide transition-all duration-300 shadow-md shadow-white/10">
+              Hire Me
+            </span>
+          </StarBorder>
         </div>
 
         {/* Hamburger Icon for Mobile & Tablet viewports */}
-        <div className="lg:hidden flex items-center relative z-50">
+        <div className="lg:hidden flex items-center shrink-0">
           <button
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="text-white hover:text-purple-400 focus:outline-none transition-colors duration-200 p-2"
-            aria-label="Toggle Menu"
+            className="text-white hover:text-purple-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded-lg transition-colors duration-200 p-2"
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-nav-drawer"
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               {isOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               ) : (
@@ -478,16 +506,40 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Slide-In Sidebar Menu (Keeps your clean styling with drawer efficiency) */}
-      <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      }`} onClick={() => setIsOpen(false)} style={{ position: 'fixed', top: '-1rem', left: 'calc(-50vw + 50%)', width: '100vw', h: '100vh' }} />
+      {/* Mobile overlay */}
+      <div
+        className={`fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsOpen(false)}
+        aria-hidden={!isOpen}
+      />
 
-      <div className={`fixed top-[-1rem] right-[-4vw] h-screen w-[280px] sm:w-[320px] bg-[#0c061a]/95 backdrop-blur-xl border-l border-white/10 p-8 pt-20 flex flex-col justify-between shadow-2xl transition-transform duration-300 ease-out z-40 lg:hidden ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}>
-        <div className="space-y-6">
-          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest border-b border-white/5 pb-2">Navigation</p>
+      {/* Slide-in mobile drawer */}
+      <div
+        id="mobile-nav-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile navigation"
+        className={`fixed top-0 right-0 z-[70] h-[100dvh] w-[min(320px,88vw)] bg-[#0c061a]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl transition-transform duration-300 ease-out lg:hidden flex flex-col ${
+          isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-white/10 shrink-0">
+          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Navigation</p>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white hover:text-purple-300 hover:border-purple-500/40 transition-colors duration-200"
+            aria-label="Close menu"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-6">
           <div className="flex flex-col gap-4">
             {navLinks.map((link, index) => (
               <a
@@ -495,21 +547,12 @@ export default function Navbar() {
                 href={`#${link.id}`}
                 onClick={(e) => {
                   e.preventDefault();
-                  setActiveIndex(index);
-                  const el = document.getElementById(link.id);
-                  if (el) {
-                    const offset = 100;
-                    const bodyRect = document.body.getBoundingClientRect().top;
-                    const elementRect = el.getBoundingClientRect().top;
-                    window.scrollTo({
-                      top: elementRect - bodyRect - offset,
-                      behavior: 'smooth',
-                    });
-                  }
-                  setIsOpen(false);
+                  navigateToSection(link.id, index);
                 }}
                 className={`text-base font-semibold transition-colors duration-200 ${
-                  activeIndex === index ? 'text-purple-400 pl-2 border-l-2 border-purple-500' : 'text-gray-300 hover:text-white'
+                  activeIndex >= 0 && activeIndex === index
+                    ? 'text-purple-400 pl-2 border-l-2 border-purple-500'
+                    : 'text-gray-300 hover:text-white'
                 }`}
               >
                 {link.name}
@@ -518,19 +561,26 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="w-full pt-4 border-t border-white/5">
-          <a
+        <div className="shrink-0 px-5 sm:px-6 pb-6 pt-4 border-t border-white/10 safe-area-pb">
+          <StarBorder
+            as="a"
             href="#contact"
+            color="#e2378f"
+            speed="5s"
+            thickness={1}
+            className="rounded-xl w-full"
             onClick={(e) => {
               e.preventDefault();
-              const el = document.getElementById('contact');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              scrollLockRef.current = NAV_ACTIVE_NONE;
+              setActiveIndex(NAV_ACTIVE_NONE);
+              scrollToSectionId('contact');
               setIsOpen(false);
             }}
-            className="bg-gradient-to-r from-[#814bff] to-[#e2378f] text-white text-center block w-full py-3 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20"
           >
-            Hire Me
-          </a>
+            <span className="bg-gradient-to-r from-[#814bff] to-[#e2378f] text-white text-center block w-full py-3 rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20">
+              Hire Me
+            </span>
+          </StarBorder>
         </div>
       </div>
    </nav>

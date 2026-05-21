@@ -2,7 +2,9 @@
 
 import React, { useEffect, useRef, memo } from 'react';
 import Image from 'next/image';
+import StarBorder from '@/components/StarBorder';
 import { useSectionVisible } from '@/lib/useSectionVisible';
+import { scrollToSectionId } from '@/lib/navScroll';
 
 // ==========================================
 // 1. DotField Background (Optimized)
@@ -81,7 +83,7 @@ export default function About() {
   const profileImg = "https://res.cloudinary.com/dsga4gyw9/image/upload/v1778241339/WhatsApp_Image_2026-05-03_at_8.31.37_PM_nh3ddd.jpg";
 
   return (
-    <section ref={sectionRef} id="about" className="relative w-full bg-[#03000a] text-white py-24 px-6 md:px-12 lg:px-20 overflow-hidden">
+    <section ref={sectionRef} id="about" className="relative w-full bg-[#03000a] text-white py-24 px-6 md:px-12 lg:px-20 overflow-hidden scroll-mt-28">
       <DotField active={isVisible} />
 
       <div className="container max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
@@ -127,9 +129,21 @@ export default function About() {
           </div>
           
           <div className="pt-4 flex gap-4">
-            <a href="#contact" className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-purple-500 hover:text-white transition-all shadow-lg hover:shadow-purple-500/20">
-              Work With Me
-            </a>
+            <StarBorder
+              as="a"
+              href="#contact"
+              color="#a855f7"
+              speed="5s"
+              className="rounded-lg"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSectionId('contact');
+              }}
+            >
+              <span className="block px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-purple-500 hover:text-white transition-all shadow-lg hover:shadow-purple-500/20">
+                Work With Me
+              </span>
+            </StarBorder>
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ const nextConfig = {
   },
 
   experimental: {
-    optimizePackageImports: ["react-icons", "three"],
+    optimizePackageImports: ["react-icons", "three", "postprocessing"],
   },
 };
 

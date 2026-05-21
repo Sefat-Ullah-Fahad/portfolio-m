@@ -1,8 +1,9 @@
 import dynamic from "next/dynamic";
 import Hero from "@/components/hero";
-import StatsSection from "@/components/StatsSection";
-import ProjectSection from "@/components/ProjectSection";
-import ExperienceTimeline from "@/components/ExperienceTimeline";
+
+const StatsSection = dynamic(() => import("@/components/StatsSection"), {
+  loading: () => null,
+});
 
 const About = dynamic(() => import("@/components/about"), {
   loading: () => null,
@@ -16,16 +17,29 @@ const Services = dynamic(() => import("@/components/Services"), {
   loading: () => null,
 });
 
+const ProjectSection = dynamic(() => import("@/components/ProjectSection"), {
+  loading: () => null,
+});
+
+const ExperienceTimeline = dynamic(() => import("@/components/ExperienceTimeline"), {
+  loading: () => null,
+});
+
+const Contact = dynamic(() => import("@/components/Contact"), {
+  loading: () => null,
+});
+
 export default function Home() {
   return (
     <main>
-      <Hero></Hero>
-      <StatsSection></StatsSection>
-      <About></About>
-      <TechStack></TechStack>
-      <Services></Services>
-      <ProjectSection></ProjectSection>
-      <ExperienceTimeline></ExperienceTimeline>
+      <Hero />
+      <StatsSection />
+      <About />
+      <TechStack />
+      <Services />
+      <ProjectSection />
+      <ExperienceTimeline />
+      <Contact />
     </main>
   );
 }

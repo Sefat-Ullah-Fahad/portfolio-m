@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image'; 
 import { FaEnvelope, FaEye, FaFacebook, FaGithub, FaInstagram, FaLinkedin, FaTelegramPlane } from 'react-icons/fa';
+import StarBorder from '@/components/StarBorder';
 import { useSectionVisible } from '@/lib/useSectionVisible';
+import { scrollToSectionId } from '@/lib/navScroll';
 
 // // Custom SVG Icons
 // const GithubIcon = () => (
@@ -431,14 +433,38 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 sm:gap-4 pt-2 md:pt-4 w-full px-4 sm:px-0">
-            <a href="#projects" className="bg-[#a855f7] hover:bg-[#c084fc] text-white flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm md:text-base font-bold tracking-wide transition-all shadow-lg shadow-[#a855f7]/30 transform hover:-translate-y-0.5 w-full sm:w-auto">
-              <FaEye className="w-5 h-5 animate-pulse" />
-              View My Work
-            </a>
-            <a href="#contact" className="bg-[#120722]/80 border border-[#a855f7]/40 hover:bg-[#a855f7]/10 text-white flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm md:text-base font-semibold tracking-wide transition-all transform hover:-translate-y-0.5 w-full sm:w-auto mt-2 sm:mt-0">
-             <FaTelegramPlane className="w-5 h-5" />
-              Get In Touch
-            </a>
+            <StarBorder
+              as="a"
+              href="#projects"
+              color="#a855f7"
+              speed="5s"
+              className="rounded-xl w-full sm:w-auto"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSectionId('projects');
+              }}
+            >
+              <span className="bg-[#a855f7] hover:bg-[#c084fc] text-white flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm md:text-base font-bold tracking-wide transition-all shadow-lg shadow-[#a855f7]/30 transform hover:-translate-y-0.5 w-full sm:w-auto">
+                <FaEye className="w-5 h-5 animate-pulse" />
+                View My Work
+              </span>
+            </StarBorder>
+            <StarBorder
+              as="a"
+              href="#contact"
+              color="#a855f7"
+              speed="5s"
+              className="rounded-xl w-full sm:w-auto mt-2 sm:mt-0"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSectionId('contact');
+              }}
+            >
+              <span className="bg-[#120722]/80 border border-[#a855f7]/40 hover:bg-[#a855f7]/10 text-white flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-sm md:text-base font-semibold tracking-wide transition-all transform hover:-translate-y-0.5 w-full sm:w-auto">
+                <FaTelegramPlane className="w-5 h-5" />
+                Get In Touch
+              </span>
+            </StarBorder>
           </div>
 
           <div className="flex flex-wrap justify-center lg:justify-start items-center gap-4 pt-4 md:pt-6 text-gray-500">

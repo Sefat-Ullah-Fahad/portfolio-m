@@ -10,7 +10,7 @@ export const SITE = {
   location: 'Rajshahi, Bangladesh',
   locale: 'en_US',
   image:
-    'https://res.cloudinary.com/dsga4gyw9/image/upload/v1778241339/WhatsApp_Image_2026-05-03_at_8.31.37_PM_nh3ddd.jpg',
+   'https://res.cloudinary.com/dsga4gyw9/image/upload/v1779508336/Gemini_Generated_Image_t7wdt0t7wdt0t7wd-removebg-preview_hxiqk9.png',
   logo:
     'https://res.cloudinary.com/dsga4gyw9/image/upload/v1779508336/Gemini_Generated_Image_t7wdt0t7wdt0t7wd-removebg-preview_hxiqk9.png',
   keywords: [

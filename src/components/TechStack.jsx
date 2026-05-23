@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Real Icons Import
 import { FaHtml5, FaCss3Alt } from "react-icons/fa";
@@ -104,11 +104,48 @@ const techSkills = [
 // 3. MAIN TECH STACK COMPONENT
 // ==========================================
 export default function TechStack() {
+  const [mounted, setMounted] = useState(false);
+  const containerRef = useRef(null);
+
+  // Hydration Safe: Run only on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Raw JavaScript IntersectionObserver for Scroll Animations
+  useEffect(() => {
+    if (!mounted || !containerRef.current) return;
+
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1, // Trigger when 10% of card is visible
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-reveal');
+          observer.unobserve(entry.target); // Play animation only once
+        }
+      });
+    }, observerOptions);
+
+    // Observe all skill cards
+    const cards = containerRef.current.querySelectorAll('.skill-card');
+    cards.forEach((card) => observer.observe(card));
+
+    return () => observer.disconnect();
+  }, [mounted]);
+
+  if (!mounted) return null;
+
   return (
     <section id="stack" className="relative w-full min-h-screen bg-[#030108] text-white py-24 px-4 md:px-8 overflow-hidden z-10 flex flex-col justify-center">
       
-      {/* Required CSS for GlareHover Component */}
+      {/* Required CSS for GlareHover Component & Raw CSS Animations */}
       <style dangerouslySetInnerHTML={{ __html: `
+        /* Glare Hover CSS */
         .glare-hover {
           width: var(--gh-width); height: var(--gh-height); background: var(--gh-bg);
           border-radius: var(--gh-br); border: 1px solid var(--gh-border);
@@ -139,6 +176,17 @@ export default function TechStack() {
           background-image: radial-gradient(rgba(147, 51, 234, 0.1) 1px, transparent 1px);
           background-size: 30px 30px;
         }
+
+        /* Raw CSS Animation Classes */
+        .skill-card {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .skill-card.animate-reveal {
+          opacity: 1;
+          transform: translateY(0);
+        }
       `}} />
 
       {/* Static Background Pattern (No Animation) */}
@@ -149,7 +197,7 @@ export default function TechStack() {
       <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Main Container Layout Box */}
-      <div className="max-w-7xl mx-auto w-full relative z-10">
+      <div className="max-w-7xl mx-auto w-full relative z-10" ref={containerRef}>
         
         {/* Header Section */}
         <div className="mb-20 text-center md:text-left">
@@ -167,13 +215,17 @@ export default function TechStack() {
           </p>
         </div>
 
-        {/* Fully Responsive Grid Layout with GlareHover */}
+        {/* Fully Responsive Grid Layout with GlareHover & Raw Animations */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4 md:gap-6">
           {techSkills.map((skill, index) => {
             const IconComponent = skill.icon;
             
             return (
-              <div key={index} className="w-full h-28 md:h-32 group">
+              <div 
+                key={index} 
+                className="skill-card w-full h-28 md:h-32 group"
+                style={{ transitionDelay: `${index * 50}ms` }} // Staggered Animation Delay
+              >
                 <GlareHover
                   glareColor={skill.color} // Dynamic glare color based on tech brand!
                   glareOpacity={0.4}
